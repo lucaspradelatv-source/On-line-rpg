@@ -1,0 +1,782 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Organizador de RPGs Online 3.0</title>
+<style>
+:root{
+  --bg:#101321;--panel:#1b2035;--panel2:#242b45;--blue:#527cff;
+  --blue2:#7898ff;--text:#edf0ff;--muted:#aab2d0;
+  --line:#343d5e;--danger:#e45e75;--green:#58c99a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0;border-radius:9px;padding:10px 14px;background:var(--blue);color:white;font-weight:bold}
+button:hover{filter:brightness(1.13)}
+button.secondary{background:#394361}
+button.danger{background:#a83d55}
+button.success{background:#268c6b}
+input,select,textarea{
+  background:#11182b;color:var(--text);border:1px solid var(--line);
+  border-radius:8px;padding:10px;max-width:100%;width:100%;
+}
+textarea{min-height:90px;resize:vertical}
+label{display:block;color:var(--muted);font-size:13px;margin:9px 0 5px}
+h1,h2,h3{margin-top:0}
+small,.muted{color:var(--muted)}
+header{
+  position:sticky;top:0;z-index:20;background:#202b4c;
+  border-bottom:2px solid #405b9c;padding:12px 18px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.brand{font-weight:900;font-size:18px}
+.brand span{color:#9eb5ff}
+nav{display:flex;gap:7px;flex-wrap:wrap}
+nav button{background:#34446d;padding:9px 13px}
+nav button.active{background:#7898ff;color:#11182b}
+main{max-width:1450px;margin:auto;padding:22px}
+.screen{display:none;animation:appear .18s ease}
+.screen.active{display:block}
+@keyframes appear{from{opacity:.5;transform:translateY(4px)}to{opacity:1;transform:none}}
+.hero{
+  min-height:310px;border:1px solid #394b7b;border-radius:20px;padding:35px;
+  background:radial-gradient(circle at 80% 20%,#435b9d 0,#252f53 35%,#1a2035 75%);
+  display:flex;flex-direction:column;justify-content:center;
+}
+.hero h1{font-size:clamp(30px,5vw,52px);margin-bottom:10px}
+.hero p{max-width:650px;color:#d0d9ff;line-height:1.6}
+.module-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-top:22px}
+.module-card{
+  background:var(--panel);border:1px solid var(--line);border-radius:15px;
+  padding:20px;min-height:125px;cursor:pointer;transition:.15s;
+}
+.module-card:hover{transform:translateY(-3px);border-color:var(--blue2);background:#252e4c}
+.module-card .symbol{font-size:30px;margin-bottom:10px}
+.module-card h3{margin-bottom:6px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:15px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row>*{flex:1}
+.row .fit{flex:0 0 auto}
+.two-col{display:grid;grid-template-columns:minmax(230px,310px) 1fr;gap:16px}
+.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.toolbar button.selected{outline:2px solid white;background:#718dff}
+#boardViewport{
+  overflow:auto;background:#0b1020;border:2px solid #303b5b;
+  border-radius:12px;padding:15px;min-height:300px;
+}
+#boardGrid{
+  display:grid;gap:2px;width:max-content;margin:auto;
+  background:#090d18;padding:3px;border:2px solid #495477;
+}
+.cell{
+  width:34px;height:34px;position:relative;display:flex;
+  align-items:center;justify-content:center;overflow:visible;
+  border:1px solid #0002;cursor:pointer;user-select:none;
+}
+.cell.grass{background:#568653}
+.cell.wood{background:repeating-linear-gradient(0deg,#9a653c 0 7px,#754629 8px 10px)}
+.cell.stone{background:repeating-linear-gradient(45deg,#777d8d 0 8px,#656b7a 9px 15px)}
+.cell.sand{background:#c8ad70}
+.cell.water{background:repeating-linear-gradient(0deg,#347ca9 0 7px,#28648d 8px 12px)}
+.cell.dirt{background:#876044}
+.cell.snow{background:#d8e6ed}
+.cell.wall:after{
+  content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(90deg,#656d7d 0 9px,#42495a 10px 12px);
+  border:2px solid #aab4c8;z-index:2;
+}
+.cell.door:after{
+  content:"";position:absolute;inset:3px 7px;
+  background:linear-gradient(90deg,#6b351f,#b87543,#6b351f);
+  border:2px solid #422718;border-radius:2px;z-index:3;
+}
+.cell .object{width:30px;height:30px;z-index:4;pointer-events:none;filter:drop-shadow(1px 2px 1px #0008)}
+.cell .token{
+  position:absolute;z-index:8;width:24px;height:24px;border-radius:50%;
+  border:3px solid #fff;box-shadow:0 2px 4px #000b;cursor:pointer;
+}
+.token:after{
+  content:"";position:absolute;inset:5px;border-radius:50%;
+  background:#ffffff66;border:1px solid #ffffff88;
+}
+.token.selected{outline:3px solid #ffe17a;outline-offset:2px}
+.token-name{
+  display:none;position:absolute;bottom:29px;left:50%;transform:translateX(-50%);
+  z-index:15;background:#101525;color:white;padding:4px 8px;
+  border:1px solid #91a8ff;border-radius:6px;white-space:nowrap;
+  font-size:12px;font-weight:bold;pointer-events:none;
+}
+.token:hover .token-name{display:block}
+.player-mobile-name{display:none}
+.object-library{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.object-option{
+  background:#29324d;border:1px solid #455273;border-radius:9px;padding:8px;
+  display:flex;align-items:center;gap:7px;text-align:left;color:white;font-size:12px;
+}
+.object-option.selected{outline:2px solid #91a8ff;background:#3a4a73}
+.object-option svg{width:35px;height:35px;flex-shrink:0}
+.player-list{display:flex;flex-direction:column;gap:7px}
+.player-item{display:flex;align-items:center;gap:8px;background:#252d47;padding:8px;border-radius:8px}
+.player-dot{width:17px;height:17px;border:2px solid white;border-radius:50%;flex-shrink:0}
+.dice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.die-choice{
+  padding:15px;background:#29324d;border:1px solid #455273;border-radius:12px;
+  text-align:center;cursor:pointer;
+}
+.die-choice.selected{outline:2px solid #91a8ff;background:#3b4c77}
+.die-shape{font-size:42px;display:block;margin-bottom:7px}
+#dieDisplay{
+  width:190px;height:190px;margin:15px auto;display:grid;place-items:center;
+  background:radial-gradient(circle,#3b4e80,#202945 70%);
+  border:2px solid #718dca;border-radius:28px;font-size:65px;font-weight:900;
+  text-shadow:0 3px 8px #0008;cursor:pointer;transition:transform .3s;
+}
+#dieDisplay.rolling{animation:roll .55s ease}
+@keyframes roll{0%{transform:rotate(0) scale(1)}35%{transform:rotate(150deg) scale(.8)}70%{transform:rotate(300deg) scale(1.1)}100%{transform:rotate(360deg) scale(1)}}
+#rollResult{text-align:center;font-size:25px;font-weight:bold;color:#b7c8ff;min-height:34px}
+.list-card{background:#252d47;border:1px solid #3a4565;border-radius:10px;padding:12px;margin:8px 0}
+.list-card h3{margin-bottom:5px}
+.list-card p{white-space:pre-wrap;line-height:1.45}
+.tag{display:inline-block;background:#3b4b74;color:#dce5ff;padding:4px 8px;border-radius:20px;font-size:12px}
+.character-card{border-left:4px solid var(--blue2)}
+.stat{display:inline-block;background:#151c30;border:1px solid #394564;border-radius:8px;padding:7px 10px;margin:3px}
+#turnCurrent{font-size:25px;font-weight:bold;color:#b7c8ff}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+footer{text-align:center;padding:25px;color:#727e9f;font-size:12px}
+@media(max-width:760px){
+  header{position:relative}
+  main{padding:13px}
+  .two-col{grid-template-columns:1fr}
+  .cell{width:29px;height:29px}
+  .cell .object{width:26px;height:26px}
+  .hero{padding:23px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">🎲 ORGANIZADOR RPG <span>3.0</span></div>
+  <nav id="mainNav">
+    <button class="active" data-screen="home">Início</button>
+    <button data-screen="board">Tabuleiro</button>
+    <button data-screen="dice">Dados</button>
+    <button data-screen="notes">Anotações</button>
+    <button data-screen="turns">Turnos</button>
+    <button data-screen="characters">Personagens</button>
+  </nav>
+</header>
+
+<main>
+<section id="home" class="screen active">
+  <div class="hero">
+    <span class="tag">SUA CENTRAL DE RPG</span>
+    <h1>Suas aventuras começam aqui.</h1>
+    <p>Organize suas campanhas, crie mapas, controle seus personagens e prepare suas sessões de RPG em um só lugar.</p>
+    <div class="row" style="max-width:350px">
+      <button onclick="showScreen('board')">Abrir tabuleiro</button>
+      <button class="secondary" onclick="showScreen('characters')">Ver personagens</button>
+    </div>
+  </div>
+  <h2 style="margin-top:25px">Central de ferramentas</h2>
+  <div class="module-grid">
+    <div class="module-card" onclick="showScreen('board')"><div class="symbol">🗺️</div><h3>Tabuleiro</h3><small>Monte cenários e movimente jogadores.</small></div>
+    <div class="module-card" onclick="showScreen('dice')"><div class="symbol">🎲</div><h3>Dados</h3><small>Role seus dados e veja o histórico.</small></div>
+    <div class="module-card" onclick="showScreen('notes')"><div class="symbol">📓</div><h3>Anotações</h3><small>Guarde pistas, missões e ideias.</small></div>
+    <div class="module-card" onclick="showScreen('turns')"><div class="symbol">⚔️</div><h3>Turnos</h3><small>Organize a iniciativa e as ações.</small></div>
+    <div class="module-card" onclick="showScreen('characters')"><div class="symbol">🧙</div><h3>Personagens</h3><small>Crie fichas e inventários.</small></div>
+  </div>
+</section>
+
+<section id="board" class="screen">
+  <h1>🗺️ Tabuleiro virtual</h1>
+  <p class="muted">Monte seu mapa, escolha ferramentas e posicione seus jogadores.</p>
+  <div class="two-col">
+    <aside>
+      <div class="panel">
+        <h3>Tamanho do mapa</h3>
+        <div class="row">
+          <div><label>Largura</label><input id="mapW" type="number" min="3" max="60" value="19"></div>
+          <div><label>Altura</label><input id="mapH" type="number" min="3" max="60" value="13"></div>
+        </div>
+        <button style="width:100%;margin-top:10px" onclick="resizeBoard()">Criar / redimensionar</button>
+      </div>
+
+      <div class="panel">
+        <h3>Ferramentas</h3>
+        <div class="toolbar" id="toolButtons">
+          <button class="selected" data-tool="paint">Pintar</button>
+          <button class="secondary" data-tool="wall">Parede</button>
+          <button class="secondary" data-tool="door">Porta</button>
+          <button class="secondary" data-tool="object">Objeto</button>
+          <button class="secondary" data-tool="erase">Apagar</button>
+          <button class="secondary" data-tool="move">Mover player</button>
+        </div>
+        <label>Terreno</label>
+        <select id="terrainSelect">
+          <option value="grass">Grama</option><option value="wood">Madeira</option>
+          <option value="stone">Pedra</option><option value="sand">Areia</option>
+          <option value="water">Água</option><option value="dirt">Terra</option>
+          <option value="snow">Neve</option>
+        </select>
+        <label>Cor personalizada</label>
+        <input type="color" id="customColor" value="#568653">
+        <button class="secondary" style="width:100%;margin-top:8px" onclick="setCustomTerrain()">Usar cor personalizada</button>
+      </div>
+
+      <div class="panel">
+        <h3>Biblioteca de objetos</h3>
+        <input id="objectSearch" placeholder="Pesquisar móvel ou objeto..." oninput="renderObjectLibrary()">
+        <div id="objectLibrary" class="object-library"></div>
+        <small>Escolha um objeto e clique em uma casa do mapa.</small>
+      </div>
+
+      <div class="panel">
+        <h3>Jogadores</h3>
+        <label>Nome do jogador</label><input id="playerName" placeholder="Ex.: Lucas">
+        <label>Cor do bonequinho</label><input id="playerColor" type="color" value="#e85d75">
+        <button style="width:100%;margin-top:9px" onclick="addPlayer()">Adicionar jogador</button>
+        <div id="playerList" class="player-list" style="margin-top:12px"></div>
+        <small>Selecione um bonequinho e depois clique no destino para movê-lo.</small>
+      </div>
+      <div class="panel">
+        <h3>Salvar mapa</h3>
+        <button class="success" onclick="saveAll()">Salvar agora</button>
+        <button class="secondary" onclick="clearBoard()">Limpar tabuleiro</button>
+      </div>
+    </aside>
+
+    <div>
+      <div class="panel">
+        <div class="row">
+          <strong>Seu cenário</strong>
+          <span class="muted" id="mapInfo" style="text-align:right">19 × 13</span>
+        </div>
+        <div id="boardViewport"><div id="boardGrid"></div></div>
+        <p class="muted">No computador, passe o mouse sobre os jogadores para ver seus nomes. No celular, toque no bonequinho para selecioná-lo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="dice" class="screen">
+  <h1>🎲 Dados</h1>
+  <p class="muted">Escolha um dado e clique nele ou no botão para rolar.</p>
+  <div class="panel">
+    <div class="dice-grid" id="diceChoices"></div>
+    <div id="dieDisplay" onclick="rollDie()">D20</div>
+    <div id="rollResult">Escolha um dado para começar.</div>
+    <div style="text-align:center;margin:15px">
+      <button onclick="rollDie()">Rolar dado</button>
+      <button class="secondary" onclick="clearDiceHistory()">Limpar histórico</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Histórico de rolagens</h3>
+    <div id="diceHistory"><div class="empty">Nenhuma rolagem ainda.</div></div>
+  </div>
+</section>
+
+<section id="notes" class="screen">
+  <h1>📓 Anotações</h1>
+  <div class="two-col">
+    <div class="panel">
+      <h3>Nova anotação</h3>
+      <label>Título</label><input id="noteTitle" placeholder="Nome da anotação">
+      <label>Categoria</label>
+      <select id="noteCategory">
+        <option>Geral</option><option>Missões</option><option>NPCs</option>
+        <option>Personagens</option><option>Lugares</option><option>Pistas</option>
+        <option>História</option><option>Outros</option>
+      </select>
+      <label>Conteúdo</label><textarea id="noteContent" placeholder="Escreva sua anotação..."></textarea>
+      <button style="width:100%;margin-top:10px" onclick="saveNote()">Salvar anotação</button>
+      <button class="secondary" style="width:100%;margin-top:7px" onclick="cancelNoteEdit()">Cancelar edição</button>
+    </div>
+    <div class="panel">
+      <h3>Suas anotações</h3>
+      <input id="noteSearch" placeholder="Pesquisar..." oninput="renderNotes()">
+      <div id="notesList"></div>
+    </div>
+  </div>
+</section>
+
+<section id="turns" class="screen">
+  <h1>⚔️ Controle de turnos</h1>
+  <div class="two-col">
+    <div class="panel">
+      <h3>Adicionar participante</h3>
+      <label>Nome</label><input id="turnName" placeholder="Nome do jogador">
+      <label>Iniciativa</label><input id="turnInit" type="number" value="10">
+      <button style="width:100%;margin-top:9px" onclick="addTurnPlayer()">Adicionar</button>
+      <h3 style="margin-top:22px">Participantes</h3>
+      <div id="turnPlayers"></div>
+      <button class="secondary" style="width:100%;margin-top:10px" onclick="sortTurns()">Ordenar por iniciativa</button>
+    </div>
+    <div>
+      <div class="panel">
+        <small>VEZ DE</small>
+        <div id="turnCurrent">Nenhum participante</div>
+        <div class="row" style="margin-top:15px">
+          <button onclick="changeTurn(-1)">Anterior</button>
+          <button onclick="changeTurn(1)">Próximo turno</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Registrar ação</h3>
+        <label>Descrição da ação</label>
+        <textarea id="turnAction" placeholder="O que aconteceu neste turno?"></textarea>
+        <button style="width:100%;margin-top:9px" onclick="saveTurnAction()">Salvar ação</button>
+      </div>
+      <div class="panel">
+        <h3>Histórico</h3>
+        <div id="turnHistory"></div>
+        <button class="danger" onclick="resetTurns()">Reiniciar turnos</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="characters" class="screen">
+  <h1>🧙 Fichas de personagens</h1>
+  <div class="two-col">
+    <div class="panel">
+      <h3>Ficha de personagem</h3>
+      <input type="hidden" id="charEditId">
+      <label>Nome</label><input id="charName" placeholder="Nome do personagem">
+      <div class="row">
+        <div><label>Vida / HP</label><input id="charHP" type="number" value="100"></div>
+        <div><label>Condições / efeitos</label><input id="charEffects" placeholder="Ex.: Envenenado"></div>
+      </div>
+      <label>Descrição</label><textarea id="charDescription" placeholder="Aparência, personalidade..."></textarea>
+      <label>História</label><textarea id="charStory" placeholder="História do personagem..."></textarea>
+      <label>Inventário (um item por linha)</label><textarea id="charInventory" placeholder="Espada&#10;Poção&#10;Chave"></textarea>
+      <button style="width:100%;margin-top:10px" onclick="saveCharacter()">Salvar ficha</button>
+      <button class="secondary" style="width:100%;margin-top:7px" onclick="clearCharacterForm()">Nova ficha / cancelar</button>
+    </div>
+    <div class="panel">
+      <h3>Personagens criados</h3>
+      <input id="charSearch" placeholder="Pesquisar personagem..." oninput="renderCharacters()">
+      <div id="charactersList"></div>
+    </div>
+  </div>
+</section>
+</main>
+<footer>Organizador de RPGs Online 3.0 • Suas aventuras, suas regras.</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const STORAGE_KEY = "organizadorRPG_3_0";
+
+let state = {
+  width:19,height:13,cells:[],players:[],notes:[],characters:[],
+  turns:[],turnIndex:0,turnHistory:[],diceHistory:[]
+};
+let currentTool="paint",selectedObject="table",selectedPlayer=null;
+let selectedDie=20,noteEditId=null,customTerrainColor=null;
+
+const objects = [
+  ["table","Mesa de madeira","Móveis"],["roundtable","Mesa redonda","Móveis"],
+  ["whitetable","Mesa branca","Móveis"],["metaltable","Mesa de metal","Móveis"],
+  ["chair","Cadeira","Móveis"],["stool","Banquinho","Móveis"],
+  ["bed","Cama","Móveis"],["bunk","Beliche","Móveis"],
+  ["sofa","Sofá","Móveis"],["armchair","Poltrona","Móveis"],
+  ["desk","Escrivaninha","Móveis"],["shelf","Estante","Móveis"],
+  ["cabinet","Armário","Móveis"],["chest","Baú","Aventura"],
+  ["barrel","Barril","Aventura"],["rug","Tapete","Móveis"],
+  ["lamp","Luminária","Casa"],["torch","Tocha","Aventura"],
+  ["painting","Quadro","Casa"],["mirror","Espelho","Casa"],
+  ["books","Livros","Casa"],["computer","Computador","Casa"],
+  ["tv","Televisão","Casa"],["phone","Celular","Casa"],
+  ["fridge","Geladeira","Casa"],["stove","Fogão","Casa"],
+  ["sink","Pia","Casa"],["window","Janela","Construção"],
+  ["stairs","Escada","Construção"],["ladder","Escada de mão","Aventura"],
+  ["tree","Árvore","Natureza"],["bush","Arbusto","Natureza"],
+  ["flower","Flores","Natureza"],["rock","Pedra","Natureza"],
+  ["campfire","Fogueira","Aventura"],["tent","Barraca","Aventura"],
+  ["crate","Caixote","Aventura"],["well","Poço","Natureza"],
+  ["anvil","Bigorna","Fantasia"],["sword","Espada","Fantasia"],
+  ["potion","Poção","Fantasia"],["statue","Estátua","Fantasia"]
+];
+
+function loadAll(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if(saved) state={...state,...saved};
+  }catch(e){console.warn("Não foi possível carregar o salvamento.",e)}
+  if(!state.cells || !state.cells.length) makeCells(state.width,state.height);
+  renderAll();
+}
+function saveAll(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+}
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $(id).classList.add("active");
+  document.querySelectorAll("#mainNav button").forEach(b=>{
+    b.classList.toggle("active",b.dataset.screen===id);
+  });
+  if(id==="board")renderBoard();
+  if(id==="notes")renderNotes();
+  if(id==="turns")renderTurns();
+  if(id==="characters")renderCharacters();
+}
+document.querySelectorAll("#mainNav button").forEach(b=>{
+  b.addEventListener("click",()=>showScreen(b.dataset.screen));
+});
+function makeCells(w,h){
+  state.width=w;state.height=h;
+  state.cells=Array.from({length:w*h},()=>({terrain:"grass",color:null,wall:false,door:false,object:null}));
+}
+function resizeBoard(){
+  const w=Math.max(3,Math.min(60,parseInt($("mapW").value)||19));
+  const h=Math.max(3,Math.min(60,parseInt($("mapH").value)||13));
+  if(!confirm("Redimensionar o mapa? O conteúdo atual do tabuleiro será apagado."))return;
+  makeCells(w,h);state.players.forEach((p,i)=>{p.x=Math.min(w-1,i);p.y=0});
+  saveAll();renderBoard();
+}
+function indexOf(x,y){return y*state.width+x}
+function renderBoard(){
+  $("mapW").value=state.width;$("mapH").value=state.height;
+  $("mapInfo").textContent=state.width+" × "+state.height;
+  const grid=$("boardGrid");grid.replaceChildren();
+  grid.style.gridTemplateColumns=`repeat(${state.width},34px)`;
+  state.cells.forEach((cell,i)=>{
+    const x=i%state.width,y=Math.floor(i/state.width);
+    const el=document.createElement("div");
+    el.className="cell "+(cell.terrain||"grass");
+    el.title=`Coluna ${x+1}, linha ${y+1}`;
+    if(cell.color)el.style.background=cell.color;
+    if(cell.wall)el.classList.add("wall");
+    if(cell.door)el.classList.add("door");
+    if(cell.object){
+      const obj=document.createElement("div");obj.className="object";
+      obj.innerHTML=objectSVG(cell.object);el.appendChild(obj);
+    }
+    state.players.forEach(p=>{
+      if(p.x===x&&p.y===y){
+        const token=document.createElement("div");
+        token.className="token"+(selectedPlayer===p.id?" selected":"");
+        token.style.background=p.color;
+        token.innerHTML=`<span class="token-name">${escapeHTML(p.name)}</span>`;
+        token.title=p.name;
+        token.onclick=e=>{e.stopPropagation();selectPlayer(p.id)};
+        el.appendChild(token);
+      }
+    });
+    el.addEventListener("click",()=>cellClick(x,y));
+    grid.appendChild(el);
+  });
+  renderPlayerList();
+}
+function cellClick(x,y){
+  const cell=state.cells[indexOf(x,y)];
+  if(currentTool==="paint"){
+    cell.terrain=$("terrainSelect").value;cell.color=null;cell.wall=false;cell.door=false;
+  }else if(currentTool==="wall"){
+    cell.wall=!cell.wall;cell.door=false;
+  }else if(currentTool==="door"){
+    cell.door=!cell.door;cell.wall=false;
+  }else if(currentTool==="object"){
+    cell.object=selectedObject;
+  }else if(currentTool==="erase"){
+    cell.wall=false;cell.door=false;cell.object=null;cell.color=null;cell.terrain="grass";
+  }else if(currentTool==="move"){
+    if(selectedPlayer){
+      const p=state.players.find(p=>p.id===selectedPlayer);
+      if(p){p.x=x;p.y=y;selectedPlayer=null}
+    }else{
+      const p=state.players.find(p=>p.x===x&&p.y===y);
+      if(p)selectedPlayer=p.id;
+    }
+  }
+  saveAll();renderBoard();
+}
+function setTool(tool){
+  currentTool=tool;
+  document.querySelectorAll("#toolButtons button").forEach(b=>{
+    b.classList.toggle("selected",b.dataset.tool===tool);
+    b.classList.toggle("secondary",b.dataset.tool!==tool);
+  });
+}
+document.querySelectorAll("#toolButtons button").forEach(b=>{
+  b.addEventListener("click",()=>setTool(b.dataset.tool));
+});
+function setCustomTerrain(){
+  customTerrainColor=$("customColor").value;
+  $("terrainSelect").value="grass";
+  alert("Cor personalizada selecionada! Use Pintar e clique nas casas do mapa.");
+  currentTool="custom";
+  setTool("paint");
+}
+$("terrainSelect").addEventListener("change",()=>{customTerrainColor=null});
+function addPlayer(){
+  const name=$("playerName").value.trim();
+  if(!name){alert("Digite o nome do jogador.");return}
+  const p={id:uid(),name,color:$("playerColor").value,x:Math.floor(state.width/2),y:Math.floor(state.height/2)};
+  state.players.push(p);$("playerName").value="";
+  selectedPlayer=p.id;setTool("move");saveAll();renderBoard();
+}
+function selectPlayer(id){selectedPlayer=id;setTool("move");renderBoard()}
+function renderPlayerList(){
+  const box=$("playerList");box.replaceChildren();
+  if(!state.players.length){box.innerHTML='<div class="empty">Nenhum jogador adicionado.</div>';return}
+  state.players.forEach(p=>{
+    const item=document.createElement("div");item.className="player-item";
+    item.innerHTML=`<span class="player-dot" style="background:${p.color}"></span><span style="flex:1">${escapeHTML(p.name)}</span>`;
+    const select=document.createElement("button");select.className="secondary";select.textContent="Selecionar";
+    select.onclick=()=>selectPlayer(p.id);
+    const del=document.createElement("button");del.className="danger";del.textContent="×";
+    del.onclick=()=>{state.players=state.players.filter(x=>x.id!==p.id);if(selectedPlayer===p.id)selectedPlayer=null;saveAll();renderBoard()};
+    item.append(select,del);box.appendChild(item);
+  });
+}
+function clearBoard(){
+  if(!confirm("Apagar todos os objetos, terrenos e jogadores do tabuleiro?"))return;
+  makeCells(state.width,state.height);state.players=[];selectedPlayer=null;saveAll();renderBoard();
+}
+function renderObjectLibrary(){
+  const q=$("objectSearch").value.toLowerCase();
+  const box=$("objectLibrary");box.replaceChildren();
+  objects.filter(o=>o[1].toLowerCase().includes(q)||o[2].toLowerCase().includes(q)).forEach(o=>{
+    const b=document.createElement("button");b.className="object-option"+(selectedObject===o[0]?" selected":"");
+    b.innerHTML=objectSVG(o[0])+`<span>${o[1]}</span>`;
+    b.onclick=()=>{selectedObject=o[0];setTool("object");renderObjectLibrary()};
+    box.appendChild(b);
+  });
+}
+
+/* Desenhos vetoriais próprios com contorno, luz e sombra */
+function objectSVG(type){
+  const wood='<rect x="8" y="8" width="48" height="10" rx="2" fill="#a96b3c" stroke="#4b2b1c" stroke-width="3"/><path d="M13 18v30M51 18v30" stroke="#57331f" stroke-width="5"/><path d="M11 11h42" stroke="#e4ae70" stroke-width="3"/>';
+  const chair='<rect x="17" y="9" width="30" height="23" rx="3" fill="#a96b3c" stroke="#4b2b1c" stroke-width="3"/><rect x="15" y="29" width="34" height="9" fill="#c18750" stroke="#4b2b1c" stroke-width="3"/><path d="M19 38v13M45 38v13" stroke="#55321f" stroke-width="5"/>';
+  const bed='<rect x="7" y="12" width="50" height="40" rx="5" fill="#75472e" stroke="#38251c" stroke-width="3"/><rect x="11" y="16" width="42" height="31" rx="4" fill="#6682bd"/><rect x="13" y="18" width="16" height="12" rx="3" fill="#e3e8ef"/><path d="M32 17h18v27H32z" fill="#879bc7"/>';
+  const chest='<rect x="9" y="20" width="46" height="29" rx="5" fill="#8a512d" stroke="#432718" stroke-width="3"/><path d="M9 26h46M31 21v28" stroke="#d29a56" stroke-width="4"/><rect x="27" y="30" width="8" height="10" fill="#e9c66c" stroke="#563c1c" stroke-width="2"/>';
+  const tree='<circle cx="32" cy="25" r="23" fill="#39764b" stroke="#21452d" stroke-width="3"/><circle cx="20" cy="18" r="9" fill="#5e9b58"/><circle cx="43" cy="15" r="10" fill="#76ae60"/><path d="M27 40h10v16H27z" fill="#75462c" stroke="#40251a" stroke-width="2"/>';
+  const lamp='<path d="M32 11L18 32h28z" fill="#f4d17a" stroke="#674b26" stroke-width="3"/><path d="M32 32v17M21 51h22" stroke="#9b7744" stroke-width="4"/><circle cx="32" cy="27" r="7" fill="#fff0a8"/>';
+  const sofa='<rect x="8" y="20" width="48" height="29" rx="8" fill="#526d9e" stroke="#283957" stroke-width="3"/><rect x="13" y="15" width="38" height="22" rx="6" fill="#7895c8" stroke="#283957" stroke-width="3"/><path d="M15 46v7M49 46v7" stroke="#563a2c" stroke-width="4"/>';
+  const potion='<path d="M25 8h14v10l9 11v22H16V29l9-11z" fill="#8d5bc1" stroke="#432c65" stroke-width="3"/><path d="M18 36h28v12H18z" fill="#e56f9d"/><rect x="24" y="5" width="16" height="6" fill="#d6c2a1" stroke="#493b30" stroke-width="2"/>';
+  const sword='<path d="M32 5L43 34 32 46 21 34z" fill="#dce5f2" stroke="#53627a" stroke-width="3"/><path d="M19 37l26 0M32 40v15" stroke="#9a663a" stroke-width="5"/>';
+  const torch='<path d="M27 25h10v33H27z" fill="#8b5934" stroke="#4d2e1c" stroke-width="3"/><path d="M32 6c-15 12-5 22 0 22S48 18 32 6" fill="#ffb94d" stroke="#b75a2b" stroke-width="3"/>';
+  const treeTypes={roundtable:wood,whitetable:wood,metaltable:wood,table:wood,desk:wood,chair,stool:chair,bed,bunk:bed,chest,barrel:chest,tree,bush:tree,flower:tree,rock:tree,lamp,torch,sofa,armchair:sofa,potion,sword};
+  let drawing=treeTypes[type];
+  if(type==="roundtable")drawing='<ellipse cx="32" cy="24" rx="25" ry="15" fill="#a96b3c" stroke="#4b2b1c" stroke-width="4"/><path d="M18 28v23M46 28v23" stroke="#57331f" stroke-width="5"/>';
+  if(type==="whitetable")drawing='<rect x="8" y="9" width="48" height="10" fill="#e4e5dc" stroke="#656b78" stroke-width="3"/><path d="M14 19v31M50 19v31" stroke="#b6bdc7" stroke-width="5"/>';
+  if(type==="metaltable")drawing='<rect x="8" y="10" width="48" height="10" fill="#8997a8" stroke="#364252" stroke-width="3"/><path d="M14 20v31M50 20v31" stroke="#566679" stroke-width="5"/>';
+  if(type==="books")drawing='<rect x="10" y="14" width="13" height="38" fill="#b95c52" stroke="#442d2d" stroke-width="2"/><rect x="24" y="9" width="13" height="43" fill="#477c9d" stroke="#263d4c" stroke-width="2"/><rect x="38" y="17" width="13" height="35" fill="#c79b4c" stroke="#554021" stroke-width="2"/>';
+  if(type==="computer")drawing='<rect x="9" y="8" width="46" height="31" rx="3" fill="#29354c" stroke="#101725" stroke-width="3"/><rect x="14" y="13" width="36" height="21" fill="#6da7cf"/><path d="M32 39v8M20 49h24" stroke="#b3bdcc" stroke-width="4"/>';
+  if(type==="tv")drawing='<rect x="7" y="10" width="50" height="36" rx="4" fill="#252b3b" stroke="#090d17" stroke-width="4"/><rect x="12" y="15" width="40" height="25" fill="#6286b9"/><circle cx="49" cy="43" r="2" fill="#7de1c0"/>';
+  if(type==="phone")drawing='<rect x="20" y="5" width="24" height="50" rx="5" fill="#252b3b" stroke="#090d17" stroke-width="3"/><rect x="23" y="11" width="18" height="36" fill="#73b4d8"/><circle cx="32" cy="51" r="2" fill="#eee"/>';
+  if(type==="fridge")drawing='<rect x="14" y="5" width="36" height="52" rx="3" fill="#cbd4dc" stroke="#566272" stroke-width="3"/><path d="M14 27h36" stroke="#788493" stroke-width="3"/><path d="M43 13v9M43 33v17" stroke="#667384" stroke-width="3"/>';
+  if(type==="stove")drawing='<rect x="8" y="12" width="48" height="40" rx="4" fill="#aeb7c4" stroke="#515b6a" stroke-width="3"/><circle cx="21" cy="24" r="8" fill="#343b49"/><circle cx="43" cy="24" r="8" fill="#343b49"/><circle cx="21" cy="43" r="6" fill="#343b49"/><circle cx="43" cy="43" r="6" fill="#343b49"/>';
+  if(type==="sink")drawing='<rect x="8" y="13" width="48" height="39" rx="5" fill="#9caaba" stroke="#4c5968" stroke-width="3"/><rect x="17" y="19" width="30" height="22" rx="8" fill="#5e8fa9"/><path d="M32 19v-9q0-8 10-5" fill="none" stroke="#d5e2ec" stroke-width="4"/>';
+  if(type==="rug")drawing='<rect x="7" y="9" width="50" height="44" rx="5" fill="#a64f60" stroke="#572a3a" stroke-width="3"/><rect x="13" y="15" width="38" height="32" fill="none" stroke="#e5b57b" stroke-width="3"/>';
+  if(type==="painting")drawing='<rect x="9" y="7" width="46" height="48" fill="#9b6c3c" stroke="#4d321e" stroke-width="4"/><rect x="15" y="13" width="34" height="36" fill="#7bb0b3"/><circle cx="37" cy="23" r="7" fill="#f2d27c"/><path d="M17 43l12-13 7 8 7-7 6 12" fill="#456d62"/>';
+  if(type==="mirror")drawing='<rect x="15" y="5" width="34" height="52" rx="15" fill="#8c6a47" stroke="#4a3325" stroke-width="4"/><rect x="20" y="10" width="24" height="42" rx="12" fill="#a9d3dd" stroke="#e6e6e6" stroke-width="2"/>';
+  if(type==="window")drawing='<rect x="7" y="8" width="50" height="47" fill="#875735" stroke="#3f2b20" stroke-width="4"/><rect x="13" y="14" width="38" height="35" fill="#82b7d0"/><path d="M32 14v35M13 31h38" stroke="#e0c49c" stroke-width="4"/>';
+  if(type==="stairs"||type==="ladder")drawing='<path d="M10 49h42M15 40h32M20 31h22M25 22h12M30 13h2" stroke="#c18a53" stroke-width="6" stroke-linecap="square"/>';
+  if(type==="campfire")drawing='<path d="M12 46l40-20M14 26l38 21" stroke="#70432b" stroke-width="6"/><path d="M32 5c-15 16-11 24 0 29 12-8 15-18 0-29" fill="#ff9f42" stroke="#b74f29" stroke-width="3"/><path d="M32 20c-8 9-5 13 0 16 7-5 7-10 0-16" fill="#ffe17a"/>';
+  if(type==="tent")drawing='<path d="M5 52L32 7l27 45z" fill="#527e69" stroke="#233d34" stroke-width="4"/><path d="M32 8v44M32 52l-12-20" stroke="#c9d7bd" stroke-width="3"/>';
+  if(type==="crate")drawing='<rect x="9" y="10" width="46" height="44" fill="#a87342" stroke="#4d301e" stroke-width="4"/><path d="M10 12l44 40M54 12L10 52M10 31h44" stroke="#704324" stroke-width="4"/>';
+  if(type==="well")drawing='<ellipse cx="32" cy="40" rx="24" ry="12" fill="#777b83" stroke="#383d49" stroke-width="4"/><ellipse cx="32" cy="36" rx="17" ry="7" fill="#367ca0"/><path d="M10 18h44M15 18v18M49 18v18M10 18l22-9 22 9" stroke="#97623b" stroke-width="4"/>';
+  if(type==="anvil")drawing='<path d="M13 20h38l-6 13H19zM25 33h14l5 17H20z" fill="#68798e" stroke="#303a4b" stroke-width="3"/>';
+  if(type==="statue")drawing='<path d="M20 50h24l-3-8H23z" fill="#8c9aab" stroke="#485363" stroke-width="3"/><circle cx="32" cy="17" r="10" fill="#b5bdc7" stroke="#626d7c" stroke-width="3"/><path d="M19 43l3-19h20l3 19z" fill="#a1adba" stroke="#626d7c" stroke-width="3"/>';
+  if(type==="flower")drawing='<path d="M32 27v28" stroke="#397a42" stroke-width="4"/><circle cx="32" cy="20" r="7" fill="#e8c75b"/><circle cx="21" cy="20" r="7" fill="#e879a5"/><circle cx="43" cy="20" r="7" fill="#e879a5"/><circle cx="32" cy="9" r="7" fill="#e879a5"/><circle cx="32" cy="31" r="7" fill="#e879a5"/>';
+  if(type==="bush")drawing='<circle cx="22" cy="31" r="15" fill="#39764b" stroke="#21452d" stroke-width="3"/><circle cx="39" cy="26" r="16" fill="#528e51" stroke="#21452d" stroke-width="3"/><circle cx="32" cy="17" r="12" fill="#6da95b"/>';
+  if(type==="rock")drawing='<path d="M7 46l7-24 15-12 20 8 9 28z" fill="#838b99" stroke="#424a57" stroke-width="4"/><path d="M18 25l12-10 7 13" fill="none" stroke="#c2c8d0" stroke-width="3"/>';
+  return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">${drawing||wood}</svg>`;
+}
+
+/* Dados */
+const dice=[4,6,8,10,100,12,20];
+function renderDiceChoices(){
+  $("diceChoices").innerHTML="";
+  dice.forEach(n=>{
+    const b=document.createElement("div");b.className="die-choice"+(selectedDie===n?" selected":"");
+    b.innerHTML=`<span class="die-shape">${n===4?"🔺":n===6?"⬡":n===8?"🔷":n===10?"🔶":n===100?"💯":n===12?"⬟":"🎲"}</span><b>D${n===100?"%":n}</b>`;
+    b.onclick=()=>{selectedDie=n;renderDiceChoices();$("dieDisplay").textContent="D"+(n===100?"%":n);$("rollResult").textContent="Pronto para rolar!"};
+    $("diceChoices").appendChild(b);
+  });
+}
+function rollDie(){
+  const n=selectedDie;
+  const result=Math.floor(Math.random()*n)+1;
+  const display=$("dieDisplay");display.classList.remove("rolling");void display.offsetWidth;display.classList.add("rolling");
+  display.textContent=result;
+  $("rollResult").textContent=`Resultado: ${result} (D${n===100?"%":n})`;
+  state.diceHistory.unshift({id:uid(),die:n,result,time:new Date().toLocaleTimeString("pt-BR")});
+  state.diceHistory=state.diceHistory.slice(0,40);
+  saveAll();renderDiceHistory();
+}
+function renderDiceHistory(){
+  const box=$("diceHistory");box.replaceChildren();
+  if(!state.diceHistory.length){box.innerHTML='<div class="empty">Nenhuma rolagem ainda.</div>';return}
+  state.diceHistory.forEach(r=>{
+    const d=document.createElement("div");d.className="list-card";
+    d.innerHTML=`<b>D${r.die===100?"%":r.die}</b> — Resultado: <b>${r.result}</b> <small style="float:right">${r.time}</small>`;
+    box.appendChild(d);
+  });
+}
+function clearDiceHistory(){
+  if(!confirm("Apagar o histórico de dados?"))return;
+  state.diceHistory=[];saveAll();renderDiceHistory();
+}
+
+/* Anotações */
+function saveNote(){
+  const title=$("noteTitle").value.trim(),content=$("noteContent").value.trim();
+  if(!title||!content){alert("Preencha o título e o conteúdo.");return}
+  const data={title,content,category:$("noteCategory").value};
+  if(noteEditId){Object.assign(state.notes.find(n=>n.id===noteEditId),data)}
+  else state.notes.unshift({id:uid(),...data});
+  cancelNoteEdit();saveAll();renderNotes();
+}
+function editNote(id){
+  const n=state.notes.find(x=>x.id===id);if(!n)return;
+  noteEditId=id;$("noteTitle").value=n.title;$("noteContent").value=n.content;$("noteCategory").value=n.category;
+  showScreen("notes");
+}
+function cancelNoteEdit(){
+  noteEditId=null;$("noteTitle").value="";$("noteContent").value="";$("noteCategory").value="Geral";
+}
+function deleteNote(id){
+  if(!confirm("Excluir esta anotação?"))return;
+  state.notes=state.notes.filter(n=>n.id!==id);saveAll();renderNotes();
+}
+function renderNotes(){
+  const q=$("noteSearch").value.toLowerCase(),box=$("notesList");box.replaceChildren();
+  const list=state.notes.filter(n=>(n.title+" "+n.content+" "+n.category).toLowerCase().includes(q));
+  if(!list.length){box.innerHTML='<div class="empty">Nenhuma anotação encontrada.</div>';return}
+  list.forEach(n=>{
+    const d=document.createElement("div");d.className="list-card";
+    d.innerHTML=`<span class="tag">${escapeHTML(n.category)}</span><h3 style="margin-top:9px">${escapeHTML(n.title)}</h3><p>${escapeHTML(n.content)}</p>`;
+    const edit=document.createElement("button");edit.className="secondary";edit.textContent="Editar";edit.onclick=()=>editNote(n.id);
+    const del=document.createElement("button");del.className="danger";del.textContent="Excluir";del.onclick=()=>deleteNote(n.id);
+    d.append(edit,del);box.appendChild(d);
+  });
+}
+
+/* Personagens */
+function clearCharacterForm(){
+  ["charEditId","charName","charEffects","charDescription","charStory","charInventory"].forEach(id=>$(id).value="");
+  $("charHP").value=100;
+}
+function saveCharacter(){
+  const name=$("charName").value.trim();
+  if(!name){alert("Digite o nome do personagem.");return}
+  const data={
+    name,hp:$("charHP").value,effects:$("charEffects").value,
+    description:$("charDescription").value,story:$("charStory").value,
+    inventory:$("charInventory").value
+  };
+  const id=$("charEditId").value;
+  if(id)Object.assign(state.characters.find(c=>c.id===id),data);
+  else state.characters.push({id:uid(),...data});
+  if(!state.turns.some(t=>t.name.toLowerCase()===name.toLowerCase())){
+    state.turns.push({id:uid(),name,initiative:10});
+  }
+  clearCharacterForm();saveAll();renderCharacters();renderTurns();
+}
+function editCharacter(id){
+  const c=state.characters.find(x=>x.id===id);if(!c)return;
+  $("charEditId").value=c.id;$("charName").value=c.name;$("charHP").value=c.hp;
+  $("charEffects").value=c.effects;$("charDescription").value=c.description;
+  $("charStory").value=c.story;$("charInventory").value=c.inventory;
+  showScreen("characters");
+}
+function deleteCharacter(id){
+  if(!confirm("Excluir esta ficha?"))return;
+  state.characters=state.characters.filter(c=>c.id!==id);saveAll();renderCharacters();
+}
+function renderCharacters(){
+  const q=$("charSearch").value.toLowerCase(),box=$("charactersList");box.replaceChildren();
+  const list=state.characters.filter(c=>(c.name+" "+c.description).toLowerCase().includes(q));
+  if(!list.length){box.innerHTML='<div class="empty">Nenhum personagem criado.</div>';return}
+  list.forEach(c=>{
+    const d=document.createElement("div");d.className="list-card character-card";
+    d.innerHTML=`<h3>${escapeHTML(c.name)}</h3>
+    <span class="stat">❤️ HP: ${escapeHTML(c.hp)}</span>
+    ${c.effects?`<span class="tag">${escapeHTML(c.effects)}</span>`:""}
+    <p>${escapeHTML(c.description||"Sem descrição.")}</p>
+    <details><summary>Ver história e inventário</summary>
+      <p><b>História:</b>\n${escapeHTML(c.story||"Sem história.")}</p>
+      <p><b>Inventário:</b>\n${escapeHTML(c.inventory||"Vazio.")}</p>
+    </details>`;
+    const edit=document.createElement("button");edit.className="secondary";edit.textContent="Editar";edit.onclick=()=>editCharacter(c.id);
+    const del=document.createElement("button");del.className="danger";del.textContent="Excluir";del.onclick=()=>deleteCharacter(c.id);
+    d.append(edit,del);box.appendChild(d);
+  });
+}
+
+/* Turnos */
+function addTurnPlayer(){
+  const name=$("turnName").value.trim();if(!name){alert("Digite um nome.");return}
+  state.turns.push({id:uid(),name,initiative:Number($("turnInit").value)||0});
+  $("turnName").value="";saveAll();renderTurns();
+}
+function removeTurnPlayer(id){
+  state.turns=state.turns.filter(t=>t.id!==id);
+  state.turnIndex=Math.max(0,Math.min(state.turnIndex,state.turns.length-1));
+  saveAll();renderTurns();
+}
+function sortTurns(){
+  state.turns.sort((a,b)=>b.initiative-a.initiative);state.turnIndex=0;saveAll();renderTurns();
+}
+function changeTurn(step){
+  if(!state.turns.length)return;
+  state.turnIndex=(state.turnIndex+step+state.turns.length)%state.turns.length;
+  saveAll();renderTurns();
+}
+function saveTurnAction(){
+  const action=$("turnAction").value.trim();
+  if(!action){alert("Escreva a ação.");return}
+  const player=state.turns[state.turnIndex];
+  if(!player){alert("Adicione participantes primeiro.");return}
+  state.turnHistory.unshift({id:uid(),name:player.name,action,time:new Date().toLocaleString("pt-BR")});
+  $("turnAction").value="";saveAll();renderTurns();
+}
+function deleteTurnAction(id){
+  state.turnHistory=state.turnHistory.filter(a=>a.id!==id);saveAll();renderTurns();
+}
+function resetTurns(){
+  if(!confirm("Tem certeza que deseja reiniciar a ordem e o histórico?"))return;
+  if(!confirm("Esta ação não pode ser desfeita. Continuar?"))return;
+  state.turns=[];state.turnHistory=[];state.turnIndex=0;saveAll();renderTurns();
+}
+function renderTurns(){
+  const list=$("turnPlayers");list.replaceChildren();
+  if(!state.turns.length)list.innerHTML='<div class="empty">Nenhum participante.</div>';
+  state.turns.forEach((t,i)=>{
+    const d=document.createElement("div");d.className="list-card";
+    d.innerHTML=`<b>${i+1}. ${escapeHTML(t.name)}</b><br><small>Iniciativa: ${t.initiative}</small>`;
+    const del=document.createElement("button");del.className="danger";del.textContent="Remover";del.onclick=()=>removeTurnPlayer(t.id);
+    d.append(del);list.appendChild(d);
+  });
+  $("turnCurrent").textContent=state.turns.length?state.turns[state.turnIndex]?.name||"Nenhum participante":"Nenhum participante";
+  const hist=$("turnHistory");hist.replaceChildren();
+  if(!state.turnHistory.length)hist.innerHTML='<div class="empty">Nenhuma ação registrada.</div>';
+  state.turnHistory.forEach(a=>{
+    const d=document.createElement("div");d.className="list-card";
+    d.innerHTML=`<b>${escapeHTML(a.name)}</b><p>${escapeHTML(a.action)}</p><small>${a.time}</small>`;
+    const del=document.createElement("button");del.className="danger";del.textContent="Excluir registro";del.onclick=()=>deleteTurnAction(a.id);
+    d.append(del);hist.appendChild(d);
+  });
+}
+
+function renderAll(){
+  renderBoard();renderObjectLibrary();renderDiceChoices();renderDiceHistory();
+  renderNotes();renderCharacters();renderTurns();
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function escapeHTML(value){
+  return String(value??"").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+loadAll();
+</script>
+</body>
+</html>
